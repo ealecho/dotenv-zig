@@ -14,11 +14,12 @@ fn parse_line(line_content: []u8) !?struct {
     key: []const u8,
     val: []const u8,
 } {
-    var tokenizer = std.mem.tokenizeAny(u8, line_content, "=");
-    var key = tokenizer.next() orelse return null;
-    var val = tokenizer.next() orelse return null;
-    key = std.mem.trim(u8, key, " \t\r\n");
-    val = std.mem.trim(u8, val, " \t\r\n");
+    // Find the first '=' to split key and value
+    // This correctly handles values containing '=' (e.g., URLs with query params)
+    const eq_idx = std.mem.indexOfScalar(u8, line_content, '=') orelse return null;
+    if (eq_idx + 1 >= line_content.len) return null;
+    const key: []const u8 = std.mem.trim(u8, line_content[0..eq_idx], " \t\r\n");
+    var val: []const u8 = std.mem.trim(u8, line_content[eq_idx + 1 ..], " \t\r\n");
     if (val.len > 1) if (val[0] == '"' or val[0] == '\'') {
         if (val[0] != val[val.len - 1]) return error.ValueMalformed;
         val = val[1 .. val.len - 1];
